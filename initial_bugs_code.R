@@ -4,75 +4,96 @@ library(MCMCvis)
 library(ggplot2)
 data("voles")
 
-#First we will create a model for Bugs to integrate
-
-#Setting the priors
-
-psi1 ~ U(0,1)
-mu_p ~ U(0,1)
-sig_p ~ U(0,1)
-alpha_0 ~ U(0,1)
-alpha_1 ~ U(0,1)
-
-#State Process
-
-#First we will loop through the rows which are the sites
-
-for(i in 1:n.sites){
-  z[i,1] ~ bernoulli(psi1)
+sink("Project_3.txt")
+cat("
+model{
+  #First we will create a model for Bugs to integrate
   
-  #Next we will loop through the columns, which are the primary visits
-  #We need to use 2:time because we set the initial value column 1 already
+  #Setting the priors
+  psi1 ~ dunif(0,1)
+  mu_p ~ dunif(0,1)
+  sig_p ~ dunif(0,1)
+  alpha_0 ~ dunif(0,1)
+  alpha_1 ~ dunif(0,1)
+  beta_0 ~ dunif(0,1)
+  beta_1 ~ dunif(0,1)
   
-  for(t in 2:time){
+  #State Process
+  
+  #First we will loop through the rows which are the sites
+  
+  for(site in 1:sites){
+    z[site,1] ~ dbern(psi1)
+    logit(gamma[site]) = beta_0 + beta_1 * connectivity[site]
+    logit(epsilon[site]) = alpha_0 + alpha_1*length[site]
     
-    #we are going to loop through again the sites intermittently to get the
-    #gamma and epsilon parameters in order to implement them to the next part of
-    #The state process/likelihood model
     
-    #Now looping through sites
-    for(j in 1:n.sites){
-      #This is the collonizaiton with connectivity parameter
-      gamma_params[i,j,t-1] = 1-rho_0*voles$Connectivity[j]*z[j,t-1]
+    #Next we will loop through the columns, which are the primary visits
+    #We need to use 2:time because we set the initial value column 1 already
+    
+    #Need to define connectivity, area etc
+    
+    for(time in 2:times){
+    
+      
+      
+      z[site,time] ~ dbern(psi[site,time])
+      psi[site,time] = (1-z[site,time-1])*gamma[time-1] + z[site,time-1]*(1-epsilon[time-1])
     }
-    #This is back in the t in 2:time for loop and where we use the gamma param
-    #Ans we create the two gamma and epsilon vectors
-    gamma[i,t-1] = prod(gamma_params[i,1:n.sites,t-1])
-    
-    logit(epsilon[i,t-1]) = alpha_0 + alpha_1*voles$Length[i]
-    
-    z[i,t] ~ dbern(psi[i,t])
-    psi[i,t] = (1-z[i,t-1])*gamma[t-1] + z[i,t-1]*(1-epsilon[t-1])
+  }
+  
+  #Now to define the observation process 
+  
+  # Likelihood - Observation process
+  for (site in 1:sites) {
+    for(time in 1:times){
+      q[site,time] ~ dnorm(mu_p, sig_p)
+      logit(p[site,time]) = q[site,time]
+      y[site,time] ~ dbinom(p[site,time]*z[site,time], voles_revis[site,time])
+    }
   }
 }
+",fill = TRUE)
+sink()
 
-#Now to define the observation process 
-
-# Likelihood - Observation process
-for (i in 1:n.sites) {
-  for(t in 1:time){
-    q[i,t] ~ N(mu_p, sig_p)
-    logit(p[i,t]) = q[i,t]
-    y[i,t] ~ binomial(voles[,8:11][i,t], p[i,t]*z[i,t])
-  }
+#giving the data its inputs so it is able to use them
+voles_data = list(connectivity = voles$Connectivity, 
+                  length = voles$Length,
+                  sites = nrow(voles),
+                  times = 4,
+                  voles_revis = voles[,8:11])
+# Initial values
+voles_inits = function(){
+  list(
+  psi1 = runif(1, 0, 1) 
+  )
 }
 
 
+voles_params <- c("gamma", "epsilon", "p")
 
+# MCMC settings
+ni <- 5000
+nt <- 4
+nb <- 1000
+nc <- 3
 
+voles_out <- jags(data = voles_data,
+                  inits = voles_inits,
+                  parameters.to.save = voles_params,
+                  model.file = "Project_3.txt",
+                  n.chains = nc,
+                  n.iter = ni,
+                  n.burnin = nb,
+                  n.thin = nt)
+MCMCtrace(voles_out,                 #the fitted model
+          params = voles_params[1],   #core model parameters
+          iter = ni,                 #plot all iterations
+          pdf = FALSE,               #DON'T write to a PDF
+          type = "trace") 
 
-
-
-
-
-
-
-
-
-
-
-
-
+print(MCMCsummary(voles_out,
+            params = voles_params)) #out parameters of interest
 
 
 
