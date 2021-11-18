@@ -1,0 +1,49 @@
+---
+title: "5767 Assignment 3"
+author: "Zane Hassoun"
+date: "11/17/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(statsecol)
+library(jagsUI)
+library(MCMCvis)
+library(ggplot2)
+data("voles")
+```
+
+#### R = 114 Patches to be surveyed
+#### J = 2:4 , each patch surveyed 
+#### T = 4, years from 2009-2012
+#### Detection, non-detection data (at least one litrene detected)
+#### (y) are the counts - number of detections across j within-year sampling
+####  To test the ‘isolation’ prediction, you should model the colonisation probability using a logit linear model with connectivity as a covariate. Ideally we would fit a true spatial occupancy model and estimate spatial parameters, but those models take too long to run for an assignment. So, we will compute connectivity using some parameter values from previous studies rather than estimate them directly within the MCMC. The patch-specific connectivity covariate is calculated as the sum of the weighted contributions of all surrounding patches
+
+#### There are no a priori hypotheses about spatial variation in initial occupancy $\psi_1$ or variation in detection probability. You should assume a single overall initial occupancy rate, but for detection, we cannot assume it is the same for every patch in every year. Therefore, you should develop a model where patch-by-year detection probabilities (i.e., every patch-year combination has a unique value) are normally distributed random variables on the link scale with a common mean and variance, i.e.$$q_{it} \sim N(\mu_p,\sigma^2_p) $$ $$logit(p_{it} = q_{it}$$
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
